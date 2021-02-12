@@ -29,7 +29,8 @@
   (doseq [channel @channels]
     (send! channel msg)))
 
-(notify-clients "a message")
+(comment
+  (notify-clients (str {:message "hello from the websocket"})))
 
 (defn ws-handler [req]
   (with-channel req channel

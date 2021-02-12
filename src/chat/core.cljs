@@ -37,7 +37,9 @@
   (let [messages (r/atom {})]
     (go (reset! messages
                 (read-string (<! (fetch "/api/messages")))))
-    (make-websocket! "ws://localhost:3000/api/ws" (fn [msg] (js/console.log (str msg))))
+    (make-websocket! "ws://localhost:3000/api/ws" (fn [msg]
+                                                    (swap! messages conj msg)
+                                                    (js/console.log (str msg))))
     (fn []
       [:div
        [:h2 "Messages"]
