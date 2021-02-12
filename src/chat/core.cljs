@@ -48,8 +48,22 @@
                [:li ^{:key message} message])
              @messages)]])))
 
+(defn message-sender []
+  (let [value (r/atom "")]
+    (fn []
+      [:div
+       [:input {:placeholder "message"
+                :value @value
+                :on-change #(reset! value (.. % -target -value))}]
+       [:button
+        {:on-click #(do (send-transit-msg! @value)
+                        (reset! value ""))}
+        "Send"]])))
+
 (defn app []
-  [message-list])
+  [:div
+   [message-list]
+   [message-sender]])
 
 (defn ^:dev/after-load init []
   (dom/render [app]

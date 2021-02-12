@@ -36,7 +36,10 @@
   (with-channel req channel
     (connect! channel)
     (on-close channel (partial disconnect! channel))
-    (on-receive channel #(notify-clients %))))
+    (on-receive channel (fn [message]
+                          (prn (str "received " message))
+                          (add-message message)
+                          (notify-clients (str {:message message}))))))
 
 (defstate routes
   :start [""
