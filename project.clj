@@ -6,7 +6,10 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [http-kit "2.5.1"]
                  [ring "2.0.0-alpha1"]
-                 [mount "0.1.16"]]
+                 [mount "0.1.16"]
+                 [metosin/reitit "0.5.12"]
+                 [com.taoensso/sente "1.16.1"]
+                 [compojure "1.6.2"]]
   :main ^:skip-aot chat.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
