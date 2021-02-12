@@ -2,7 +2,8 @@
   (:require [reagent.dom :as dom]
             [reagent.core :as r]
             [cljs.reader :refer [read-string]]
-            [cljs.core.async :refer-macros [go] :refer [chan put! <! >!]]))
+            [cljs.core.async :refer-macros [go go-loop] :refer [chan put! <! >!]]
+            [clojure.string :as str]))
 
 (defn fetch [url]
   (let [c (chan)]
@@ -33,13 +34,20 @@
       (println "connection established"))
     (throw (js/Error. "connection failed!"))))
 
+(defn make-async-socket! [url]
+  (let [c (chan)]
+    (make-websocket! "ws://localhost:3000/api/ws" #(put! c %))
+    c))
+
 (defn message-list []
-  (let [messages (r/atom {})]
+  (let [messages (r/atom {})
+        updates (make-async-socket! "/api/ws")]
     (go (reset! messages
                 (read-string (<! (fetch "/api/messages")))))
-    (make-websocket! "ws://localhost:3000/api/ws" (fn [msg]
-                                                    (swap! messages conj msg)
-                                                    (js/console.log (str msg))))
+    (go-loop []
+      (let [msg (<! updates)]
+        (swap! messages conj msg)))
+
     (fn []
       [:div
        [:h2 "Messages"]
@@ -56,14 +64,17 @@
                 :value @value
                 :on-change #(reset! value (.. % -target -value))}]
        [:button
-        {:on-click #(do (send-transit-msg! @value)
+        {:on-click #(do (send-transit-msg! (str [:chat/add-message @value]))
                         (reset! value ""))}
         "Send"]])))
 
 (defn app []
-  [:div
-   [message-list]
-   [message-sender]])
+  (let [input-chan (chan)
+        ws-pub (pub input-chan first)
+        output-chan (chan)]
+   [:div
+    [message-list {:updates (sub output-chan :)}]
+    [message-sender]]))
 
 (defn ^:dev/after-load init []
   (dom/render [app]

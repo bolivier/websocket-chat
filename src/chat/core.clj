@@ -29,17 +29,22 @@
   (doseq [channel @channels]
     (send! channel msg)))
 
-(comment
-  (notify-clients (str {:message "hello from the websocket"})))
+(defmulti ws-received first)
+
+(defmethod ws-received :chat/add-message [[_ message]]
+  (add-message message)
+  (notify-clients (str {:message message})))
+
+(defmethod ws-received :default [action]
+  nil)
 
 (defn ws-handler [req]
   (with-channel req channel
     (connect! channel)
     (on-close channel (partial disconnect! channel))
-    (on-receive channel (fn [message]
-                          (prn (str "received " message))
-                          (add-message message)
-                          (notify-clients (str {:message message}))))))
+    (on-receive channel (fn [input]
+                          (let [action (read-string input)]
+                            (ws-received action))))))
 
 (defstate routes
   :start [""
