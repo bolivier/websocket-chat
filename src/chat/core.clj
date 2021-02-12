@@ -1,6 +1,6 @@
 (ns chat.core
   (:require [compojure.core :refer [defroutes GET POST]]
-            [org.httpkit.server :refer [run-server]]
+            [org.httpkit.server :refer [run-server with-channel send! on-close on-receive]]
             [reitit.ring :as ring]
             [ring.middleware.resource :as rs]
             [mount.core :refer [defstate]]
@@ -17,9 +17,30 @@
   {:status 200
    :body (str @messages)})
 
+(defonce channels (atom #{}))
+
+(defn connect! [channel]
+  (swap! channels conj channel))
+
+(defn disconnect! [channel status]
+  (swap! channels #(remove #{channel} %)))
+
+(defn notify-clients [msg]
+  (doseq [channel @channels]
+    (send! channel msg)))
+
+(notify-clients "a message")
+
+(defn ws-handler [req]
+  (with-channel req channel
+    (connect! channel)
+    (on-close channel (partial disconnect! channel))
+    (on-receive channel #(notify-clients %))))
+
 (defstate routes
   :start [""
           ["/api"
+           ["/ws" {:get ws-handler}]
            ["/messages" {:get messages-handler}]
            ["/submit-form" {:post (fn [req]
                                     {:status 200
