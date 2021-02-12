@@ -12,3 +12,6 @@ pom.xml.asc
 /.nrepl-port
 .hgignore
 .hg/
+/.shadow-cljs/
+/node_modules/
+/resources/public/js/

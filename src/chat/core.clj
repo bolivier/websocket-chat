@@ -1,20 +1,37 @@
 (ns chat.core
   (:require [compojure.core :refer [defroutes GET POST]]
-   [org.httpkit.server :refer [run-server]]
-            [mount.core :refer [defstate]]))
+            [org.httpkit.server :refer [run-server]]
+            [reitit.ring :as ring]
+            [ring.middleware.resource :as rs]
+            [mount.core :refer [defstate]]
+            [clojure.string :as str]))
 
-(defn index-handler [req]
+
+
+(defonce messages (atom []))
+
+(defn add-message [message]
+  (swap! messages conj {:message message}))
+
+(defn messages-handler [req]
   {:status 200
-   :body (str "uri: " (:uri req))})
+   :body (str @messages)})
 
-(defroutes my-app
-  (GET  "/"            req (index-handler req))
-  (POST "/submit-form" req (index-handler req)))
+(defstate routes
+  :start [""
+          ["/api"
+           ["/messages" {:get messages-handler}]
+           ["/submit-form" {:post (fn [req]
+                                    {:status 200
+                                     :body   "form submitted"})}]]])
 
-(defn app [req]
-  (index-handler req))
+(defstate my-app
+  :start (ring/ring-handler (ring/router routes)
+                            (ring/create-resource-handler
+                             {:root ""
+                              :path "/"})))
 
 (defstate server
-  :start (run-server #'app {:port 3000
-                            :join? false})
+  :start (run-server #'my-app {:port  3000
+                               :join? false})
   :stop (server))
